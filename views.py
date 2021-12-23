@@ -16,17 +16,17 @@ from validators import validate_required_fields, validate_fields
 
 
 @validate_required_fields(dict(name=str, password=str))
-def login():
-    user = session.query(User).filter(User.name == request.json['name']).first()
-    if user and user.check_password(request.json['password']):
+def login(data):
+    user = session.query(User).filter(User.name == data['name']).first()
+    if user and user.check_password(data['password']):
         access_token = create_access_token(identity=user.id)
         return jsonify(access_token=access_token)
     return jsonify(msg='Invalid name or password.'), 400
 
 
 @validate_required_fields(dict(name=str, password=str))
-def registration():
-    user = User(name=request.json['name'], password=request.json['password'])
+def registration(data):
+    user = User(name=data['name'], password=data['password'])
     session.add(user)
     try:
         session.commit()
@@ -42,20 +42,18 @@ class MyUserView(MethodView):
 
     @get_user_from_jwt
     @validate_fields(dict(name=str, password=str, image=FileStorage))
-    def patch(self, user):
+    def patch(self, data, user):
         if 'image' in request.files:
             image = request.files['image']
             if not image or not check_allowed_image(image.filename):
                 pass
             image.filename = f'{uuid.uuid4()}.{get_file_extension(image.filename)}'
             user.add_image(image)
-        if isinstance(request.json, dict):
-            name = request.json.get('name')
-            password = request.json.get('password')
-            if name:
-                user.name = name
-            if password:
-                user.set_password(password)
+        if data:
+            if 'name' in data:
+                user.name = data['name']
+            if 'password' in data:
+                user.set_password(data['password'])
         session.add(user)
         try:
             session.commit()

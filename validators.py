@@ -2,6 +2,8 @@ from functools import wraps
 
 from flask import request, jsonify
 
+from utils import get_request_data
+
 
 def validate_required_fields(fields: dict):
     def validate_required_fields_(func):
@@ -9,7 +11,7 @@ def validate_required_fields(fields: dict):
         def wrapped(*args, **kwargs):
             error_required_fields = []
             error_value_fields = []
-            data = request.json or {}
+            data = get_request_data()
             for field, types in fields.items():
                 if field not in data:
                     error_required_fields.append(field)
@@ -24,7 +26,7 @@ def validate_required_fields(fields: dict):
                 for field in error_value_fields:
                     error_data[field] = f'The value must be {fields[field]}.'
                 return jsonify(msgs=error_data), 400
-            return func(*args, **kwargs)
+            return func(*args, data={field: data[field] for field in fields}, **kwargs)
 
         return wrapped
 
@@ -36,7 +38,7 @@ def validate_fields(fields: dict):
         @wraps(func)
         def wrapped(*args, **kwargs):
             error_value_fields = []
-            data = request.json or {}
+            data = get_request_data()
             for field, types in fields.items():
                 if field in data and not isinstance(data[field], types):
                     error_value_fields.append(field)
@@ -46,7 +48,7 @@ def validate_fields(fields: dict):
                 for field in error_value_fields:
                     error_data[field] = f'The value must be {fields[field]}.'
                 return jsonify(msgs=error_data), 400
-            return func(*args, **kwargs)
+            return func(*args, data={field: data[field] for field in fields if field in data}, **kwargs)
 
         return wrapped
 

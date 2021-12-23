@@ -1,4 +1,4 @@
-from flask import jsonify
+from flask import jsonify, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
 
 import config
@@ -26,3 +26,7 @@ def get_file_extension(filename: str) -> str:
 
 def check_allowed_image(filename: str) -> bool:
     return get_file_extension(filename) in config.ALLOWED_IMAGE_EXTENSIONS
+
+
+def get_request_data():
+    return request.json or request.form or {}
