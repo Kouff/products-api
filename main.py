@@ -12,28 +12,23 @@ app.config['JWT_SECRET_KEY'] = config.SECRET_KEY
 jwt = JWTManager(app)
 
 
-@validate_field(dict(name=str, password=str))
-def login():
-    user = session.query(User).filter(User.name == request.json['name']).first()
-    if user and check_password_hash(user.password, request.json['password']):
-        access_token = create_access_token(identity=user.id)
-        return jsonify(access_token=access_token)
-    return jsonify(login='Invalid name or password.'), 400
+@app.errorhandler(404)
+def not_found(error):
+    return jsonify(msg='Not found.'), 404
 
 
-@validate_field(dict(name=str, password=str))
-def registration():
-    user = User(name=request.json['name'], password=request.json['password'])
-    session.add(user)
-    try:
-        session.commit()
-    except IntegrityError:
-        return jsonify(name='This name is already taken.'), 400
-    return jsonify(access_token='x')
+@app.errorhandler(405)
+def not_found(error):
+    return jsonify(msg='The method is not allowed for the requested URL.'), 405
 
 
-app.add_url_rule('/api/v1/login/', view_func=login, methods=('POST',))
-app.add_url_rule('/api/v1/registration/', view_func=registration, methods=('POST',))
+@app.errorhandler(500)
+def not_found(error):
+    return jsonify(msg='Something went wrong'), 500
+
+
+app.add_url_rule('/api/v1/login/', view_func=views.login, methods=('POST',))
+app.add_url_rule('/api/v1/registration/', view_func=views.registration, methods=('POST',))
 
 if __name__ == '__main__':
     Base.metadata.create_all(engine)
