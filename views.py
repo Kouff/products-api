@@ -6,7 +6,7 @@ from flask_jwt_extended import create_access_token
 from sqlalchemy.exc import IntegrityError
 from werkzeug.datastructures import FileStorage
 from db import session
-from models import User, Product
+from models import User, Product, Price
 from utils import get_user_from_jwt, check_allowed_image, get_file_extension
 from validators import validate_required_fields, validate_fields
 
@@ -120,3 +120,23 @@ class MyProductDetailView(MethodView):
         session.add(product)
         session.commit()
         return jsonify(product.to_dict('id', 'code', 'name', 'image', 'prices'))
+
+
+class MyProductPriceView(MethodView):
+    def get_product(self, p_id, user):
+        return session.query(Product).filter(Product.user == user, Product.id == p_id).first()
+
+    @get_user_from_jwt
+    @validate_required_fields(dict(currency=str, price=(int, float)))
+    def post(self, p_id, data, user):
+        product = self.get_product(p_id, user)
+        if not product:
+            return jsonify(msg='Not found.'), 404
+        if (data['currency'],) in session.query(Price.currency).filter(
+                Price.product == product).all():
+            return jsonify(msgs={'currency': 'This currency is already created.'}), 400
+        price = Price(currency=data['currency'], price=data['price'], product=product)
+        session.add(price)
+        session.commit()
+        return jsonify(price.to_dict('id', 'currency', 'price', 'product_id'))
+
