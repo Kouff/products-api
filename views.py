@@ -35,7 +35,7 @@ def registration():
     return jsonify(user.to_dict('id', 'name', 'image'))
 
 
-class UsersMeView(MethodView):
+class MyUserView(MethodView):
     @get_user_from_jwt
     def get(self, user):
         return jsonify(user.to_dict('id', 'name', 'image'))
