@@ -45,6 +45,8 @@ class User(Base, JsonObj, ImageObj):
     password = Column(String(150))
     image_filename = Column(String(255))
 
+    relationship_products = relationship('Product', back_populates='user')
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if 'password' in kwargs:
@@ -65,13 +67,19 @@ class Product(Base, JsonObj, ImageObj):
     image_filename = Column(String(255))
 
     user_id = Column(Integer, ForeignKey('user.id'))
-    user = relationship("User")
+    user = relationship('User')
+
+    relationship_prices = relationship('Price', back_populates='product')
 
     def __init__(self, *args, **kwargs):
         image = kwargs.pop('image', None)
         super().__init__(*args, **kwargs)
         if isinstance(image, FileStorage):
             self.add_image(image)
+
+    @property
+    def prices(self) -> list:
+        return [price.to_dict('currency', 'price') for price in self.relationship_prices]
 
 
 class Price(Base, JsonObj):
@@ -81,4 +89,4 @@ class Price(Base, JsonObj):
     price = Column(Float)
 
     product_id = Column(Integer, ForeignKey('product.id'))
-    product = relationship("Product")
+    product = relationship('Product')

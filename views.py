@@ -61,7 +61,7 @@ class MyUserView(MethodView):
 class MyProductsView(MethodView):
     @get_user_from_jwt
     def get(self, user):
-        products = session.query(Product).filter(Product.user == user).all() or []
+        products = user.relationship_products
         return jsonify(
             [product.to_dict('id', 'code', 'name', 'image') for product in products]
         )
@@ -84,3 +84,39 @@ class MyProductsView(MethodView):
         except IntegrityError:
             return jsonify(msgs={'name': 'This name is already taken.'}), 400
         return jsonify(product.to_dict('id', 'code', 'name', 'image'))
+
+
+class MyProductDetailView(MethodView):
+    def get_product(self, p_id, user):
+        return session.query(Product).filter(Product.user == user, Product.id == p_id).first()
+
+    @get_user_from_jwt
+    def get(self, p_id, user):
+        product = self.get_product(p_id, user)
+        if not product:
+            return jsonify(msg='Not found.'), 404
+        return jsonify(product.to_dict('id', 'code', 'name', 'image', 'prices'))
+
+    @get_user_from_jwt
+    @validate_fields(dict(name=str, code=str, image=FileStorage))
+    def patch(self, p_id, data, user):
+        product = self.get_product(p_id, user)
+        if not product:
+            return jsonify(msg='Not found.'), 404
+        if 'image' in request.files:
+            image = request.files['image']
+            if not image or not check_allowed_image(image.filename):
+                return jsonify(msgs={'image': 'Not allowed extension.'}), 400
+            image.filename = f'{uuid.uuid4()}.{get_file_extension(image.filename)}'
+            product.add_image(image)
+        if data:
+            if 'name' in data:
+                product.name = data['name']
+            if 'code' in data:
+                if (data['code'],) in session.query(Product.code).filter(
+                        Product.user == user, Product.id != product.id).all():
+                    return jsonify(msgs={'code': 'This code is already taken.'}), 400
+                product.code = data['code']
+        session.add(product)
+        session.commit()
+        return jsonify(product.to_dict('id', 'code', 'name', 'image', 'prices'))
