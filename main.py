@@ -30,6 +30,7 @@ def not_found(error):
 app.add_url_rule('/api/v1/login/', view_func=views.login, methods=('POST',))
 app.add_url_rule('/api/v1/registration/', view_func=views.registration, methods=('POST',))
 app.add_url_rule('/api/v1/my-user/', view_func=views.MyUserView.as_view('my user'))
+app.add_url_rule('/api/v1/my-products/', view_func=views.MyProductsView.as_view('my products'))
 
 app.add_url_rule('/media/<model_name>/images/<name>', endpoint="images", build_only=True)
 

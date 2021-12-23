@@ -67,6 +67,12 @@ class Product(Base, JsonObj, ImageObj):
     user_id = Column(Integer, ForeignKey('user.id'))
     user = relationship("User")
 
+    def __init__(self, *args, **kwargs):
+        image = kwargs.pop('image', None)
+        super().__init__(*args, **kwargs)
+        if isinstance(image, FileStorage):
+            self.add_image(image)
+
 
 class Price(Base, JsonObj):
     __tablename__ = 'price'

@@ -1,4 +1,3 @@
-import os
 import uuid
 
 from flask import request, jsonify
@@ -6,11 +5,8 @@ from flask.views import MethodView
 from flask_jwt_extended import create_access_token
 from sqlalchemy.exc import IntegrityError
 from werkzeug.datastructures import FileStorage
-from werkzeug.utils import secure_filename
-
-import config
 from db import session
-from models import User
+from models import User, Product
 from utils import get_user_from_jwt, check_allowed_image, get_file_extension
 from validators import validate_required_fields, validate_fields
 
@@ -46,7 +42,7 @@ class MyUserView(MethodView):
         if 'image' in request.files:
             image = request.files['image']
             if not image or not check_allowed_image(image.filename):
-                pass
+                return jsonify(msgs={'image': 'Not allowed extension.'}), 400
             image.filename = f'{uuid.uuid4()}.{get_file_extension(image.filename)}'
             user.add_image(image)
         if data:
@@ -60,3 +56,31 @@ class MyUserView(MethodView):
         except IntegrityError:
             return jsonify(msgs={'name': 'This name is already taken.'}), 400
         return jsonify(user.to_dict('id', 'name', 'image'))
+
+
+class MyProductsView(MethodView):
+    @get_user_from_jwt
+    def get(self, user):
+        products = session.query(Product).filter(Product.user == user).all() or []
+        return jsonify(
+            [product.to_dict('id', 'code', 'name', 'image') for product in products]
+        )
+
+    @get_user_from_jwt
+    @validate_required_fields(dict(code=str, name=str), dict(image=FileStorage))
+    def post(self, data, user):
+        image = None
+        if 'image' in request.files:
+            image = request.files['image']
+            if not image or not check_allowed_image(image.filename):
+                return jsonify(msgs={'image': 'Not allowed extension.'}), 400
+            image.filename = f'{uuid.uuid4()}.{get_file_extension(image.filename)}'
+        if (data['code'],) in session.query(Product.code).filter(Product.user == user).all():
+            return jsonify(msgs={'code': 'This code is already taken.'}), 400
+        product = Product(code=data['code'], name=data['name'], image=image, user=user)
+        session.add(product)
+        try:
+            session.commit()
+        except IntegrityError:
+            return jsonify(msgs={'name': 'This name is already taken.'}), 400
+        return jsonify(product.to_dict('id', 'code', 'name', 'image'))
