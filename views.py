@@ -3,6 +3,7 @@ import uuid
 from flask import request, jsonify
 from flask.views import MethodView
 from flask_jwt_extended import create_access_token
+from sqlalchemy import or_, text
 from sqlalchemy.exc import IntegrityError
 from werkzeug.datastructures import FileStorage
 from db import session
@@ -61,9 +62,17 @@ class MyUserView(MethodView):
 class MyProductsView(MethodView):
     @get_user_from_jwt
     def get(self, user):
-        products = user.relationship_products
+        products = session.query(Product).filter(Product.user == user)
+        search = request.args.get('search')
+        order = request.args.get('order')
+        if search:
+            products = products.filter(or_(Product.code == search, Product.name.startswith(search)))
+        if order and order in ('code', 'name', '-code', '-name'):
+            if order.startswith('-'):
+                order = text(f'{order[1:]} desc')
+            products = products.order_by(order)
         return jsonify(
-            [product.to_dict('id', 'code', 'name', 'image') for product in products]
+            [product.to_dict('id', 'code', 'name', 'image') for product in products.all()]
         )
 
     @get_user_from_jwt
@@ -139,4 +148,3 @@ class MyProductPriceView(MethodView):
         session.add(price)
         session.commit()
         return jsonify(price.to_dict('id', 'currency', 'price', 'product_id'))
-
