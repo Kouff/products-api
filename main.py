@@ -2,8 +2,6 @@ from flask import Flask, jsonify
 from flask_jwt_extended import JWTManager
 
 import config
-from db import engine
-from models import Base
 import views
 
 app = Flask(__name__)
@@ -38,5 +36,4 @@ app.add_url_rule(
 app.add_url_rule('/media/<model_name>/images/<name>', endpoint="images", build_only=True)
 
 if __name__ == '__main__':
-    Base.metadata.create_all(engine)
     app.run()
