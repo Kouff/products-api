@@ -1,17 +1,10 @@
-from flask import Flask, request, jsonify
-from flask_jwt_extended import JWTManager, create_access_token, get_jwt_identity, jwt_required
-from sqlalchemy import create_engine
-from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import sessionmaker
-from werkzeug.security import check_password_hash
+from flask import Flask, jsonify
+from flask_jwt_extended import JWTManager
 
 import config
-from models import User, Base
-from validators import validate_field
-
-engine = create_engine(config.DB_URL)
-Session = sessionmaker(bind=engine)
-session = Session()
+from db import engine
+from models import Base
+import views
 
 app = Flask(__name__)
 
