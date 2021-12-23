@@ -13,10 +13,15 @@ class User(Base):
     image_path = Column(String(255))
 
     def __init__(self, *args, **kwargs):
-        if 'password' in kwargs:
-            kwargs['password'] = generate_password_hash(kwargs['password'])
         super().__init__(*args, **kwargs)
+        if 'password' in kwargs:
+            self.set_password(self.password)
 
+    def set_password(self, password):
+        self.password = generate_password_hash(password)
+
+    def check_password(self, password):
+        return check_password_hash(self.password, password)
 
 class Product(Base):
     __tablename__ = 'product'
